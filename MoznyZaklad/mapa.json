@@ -1,0 +1,14 @@
+[
+  {
+    "Id": "kajuta",
+    "Nazev": "Obytná zóna",
+    "Popis": "Tvoje malá stísněná kajuta. Je tu bezpečno.",
+    "Vychody": { "ven": "chodba" }
+  },
+  {
+    "Id": "chodba",
+    "Nazev": "Temná chodba",
+    "Popis": "Dlouhá spoře osvětlená chodba.",
+    "Vychody": { "zpet": "kajuta" }
+  }
+]
