@@ -2,13 +2,172 @@
   {
     "Id": "kajuta",
     "Nazev": "Obytná zóna",
-    "Popis": "Tvoje malá stísněná kajuta. Je tu bezpečno.",
-    "Vychody": { "ven": "chodba" }
+    "Popis": "Tvoje kajuta. Je tu bezpečno.",
+    "Vychody": { "chodba": "chodba" },
+
+    "Predmety": [],
+
+    "Npc": [
+      {
+        "Id": "mechanik",
+        "Nazev": "mechanik",
+        "Zivoty": 0,
+        "Utok": 0,
+
+        "JeQuestNpc": true,
+        "PozadovaneItemy": [ "soucastka", "medkit" ],
+        "OdmenaItem": "super_mec",
+
+        "DialogRoot": {
+          "Text": "Potřebuju pomoc. Pomůžeš?",
+          "Options": [
+            {
+              "Text": "Jo, pomuzu",
+              "Akce": "startQuest",
+              "Next": {
+                "Text": "Super! Prines mi klic a medkit.",
+                "Options": []
+              }
+            },
+            {
+              "Text": "Ne",
+              "Next": {
+                "Text": "Tak zmiz.",
+                "Options": []
+              }
+            }
+          ]
+        }
+      }
+    ]
   },
   {
     "Id": "chodba",
     "Nazev": "Temná chodba",
-    "Popis": "Dlouhá spoře osvětlená chodba.",
-    "Vychody": { "zpet": "kajuta" }
+    "Popis": "Centrální chodba stanice.",
+    "Vychody": {
+      "kajuta": "kajuta",
+      "dvere": "dvere",
+      "dul": "dul",
+      "sklad": "sklad",
+      "laborator": "laborator",
+      "raketa": "raketa"
+    },
+
+    "Predmety": [],
+    "Npc": [
+      {
+          "Id": "straze",
+          "Nazev": "straze",
+          "Zivoty": 15,
+          "Utok": 3,
+          "Dialog": "Stůj!",
+          "Drop": [ "klic1", "soucastka" ] 
+      }
+    ]
+  },
+  {
+    "Id": "dvere",
+    "Nazev": "Zamčené dveře",
+    "Popis": "Masivní bezpečnostní dveře.",
+    "Vychody": { "chodba": "chodba" },
+
+    "Zamceno": true,
+    "Klic": "klic1",
+
+    "Predmety": [],
+    "Npc": [
+      {
+        "Id": "mutant",
+        "Nazev": "mutant",
+        "Zivoty": 20,
+        "Utok": 4,
+        "Dialog": "Grrrr!",
+        "Drop": [ "klic2" ]
+      }
+    ]
+  },
+  {
+    "Id": "dul",
+    "Nazev": "Důl",
+    "Popis": "Temné těžební prostory.",
+    "Vychody": { "chodba": "chodba" },
+
+    "Zamceno": true,
+    "Klic": "klic2",
+
+    "Predmety": [
+      {
+        "Id": "klic3",
+        "Nazev": "klic3",
+        "Popis": "Klíč k laboratoři"
+      }
+    ],
+
+    "Npc": []
+  },
+  {
+    "Id": "sklad",
+    "Nazev": "Sklad",
+    "Popis": "Zásoby stanice.",
+    "Vychody": { "chodba": "chodba" },
+
+    "Predmety": [
+      {
+        "Id": "medkit",
+        "Nazev": "medkit",
+        "Popis": "Léčí",
+        "Typ": "heal",
+        "Hodnota": 10
+      },
+      {
+        "Id": "medkit",
+        "Nazev": "medkit",
+        "Popis": "Léčí",
+        "Typ": "heal",
+        "Hodnota": 10
+      }
+    ],
+
+    "Npc": []
+  },
+  {
+    "Id": "laborator",
+    "Nazev": "Laboratoř",
+    "Popis": "Zde se nachází energetické jádro.",
+    "Vychody": { "chodba": "chodba" },
+
+    "Zamceno": true,
+    "Klic": "klic3",
+
+    "Predmety": [
+      {
+        "Id": "core",
+        "Nazev": "core",
+        "Popis": "Energetické jádro"
+      }
+    ],
+
+    "Npc": [
+      {
+        "Id": "boss",
+        "Nazev": "boss",
+        "Zivoty": 25,
+        "Utok": 5,
+        "Dialog": "Neprojdeš!"
+      }
+    ]
+  },
+  {
+    "Id": "raketa",
+    "Nazev": "Odpalovací můstek",
+    "Popis": "Raketa připravená ke startu.",
+    "Vychody": { "chodba": "chodba" },
+
+    "JeCilova": true,
+    "PotrebnyItem": "core",
+
+    "Predmety": [],
+    "Npc": []
   }
 ]

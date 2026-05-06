@@ -31,10 +31,7 @@ namespace MoznyZaklad.Prikazy
                 sb.AppendLine($"- {prikaz.Napoveda}");
             }
 
-            sb.AppendLine("- vezmi <predmet> - zatim neni implementovano");
-            sb.AppendLine("- poloz <predmet> - zatim neni implementovano");
-            sb.AppendLine("- inventar - zatim neni implementovano");
-            sb.AppendLine("- konec - ukonci spojeni");
+            
 
             return sb.ToString();
         }

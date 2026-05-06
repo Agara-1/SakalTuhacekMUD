@@ -1,51 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using MoznyZaklad.Svet;
 
 namespace MoznyZaklad.Prikazy
 {
-    using MoznyZaklad.Svet;
-    using System.Text;
-
     public class JdiPrikaz : IPrikaz
     {
         public string Nazev => "jdi";
-        public string Napoveda => "jdi <jmeno_mistnosti> - presune hrace do sousedni mistnosti";
+        public string Napoveda => "jdi <smer>";
 
         public string Proved(Hrac hrac, string[] argumenty)
         {
             if (argumenty.Length < 2)
+                return "Pouziti: jdi <smer>";
+
+            string smer = argumenty[1].ToLower();
+
+            if (!hrac.AktualniMistnost.SousedniMistnosti.ContainsKey(smer))
+                return "Tam se jit neda.";
+
+            var nova = hrac.AktualniMistnost.SousedniMistnosti[smer];
+
+            if (nova.Zamceno && !nova.Odemceno)
             {
-                return "Pouziti: jdi <jmeno_mistnosti>";
+                if (nova.Klic != null && !hrac.Klice.Contains(nova.Klic))
+                    return "Dvere jsou zamcene.";
+
+                nova.Odemceno = true;
             }
 
-            string cilovaMistnost = argumenty[1].ToLower();
-
-            if (!hrac.AktualniMistnost.SousedniMistnosti.ContainsKey(cilovaMistnost))
+            if (nova.JeCilova)
             {
-                return "Do teto mistnosti se odsud neda jit.";
-            }
+                bool maCore = hrac.Inventar.Any(i => i.Id == nova.PotrebnyItem);
 
-            Mistnost puvodni = hrac.AktualniMistnost;
-            Mistnost nova = puvodni.SousedniMistnosti[cilovaMistnost];
+                if (!maCore)
+                    return "Raketa neni pripravena. Chybi ti core!";
 
-            lock (puvodni.Hraci)
-            {
-                puvodni.Hraci.Remove(hrac);
-            }
+                hrac.Reset();
+                hrac.Vyhral = true;
 
-            lock (nova.Hraci)
-            {
-                nova.Hraci.Add(hrac);
+                return "Vyhral jsi! Gratuluji!";
             }
 
             hrac.AktualniMistnost = nova;
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Presunul ses do mistnosti: {nova.Nazev}");
-            sb.AppendLine();
+            sb.AppendLine($"Presunul ses do: {nova.Nazev}");
             sb.AppendLine(nova.VratPopisMistnosti(hrac));
 
             return sb.ToString();

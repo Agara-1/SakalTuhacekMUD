@@ -18,13 +18,18 @@ namespace MoznyZaklad.Server
 
         public MusServer(int port)
         {
-            SpravceUctu.Inicializace(); // Zapneme složku Saves
+            SpravceUctu.Inicializace();
 
             herniSvet = new HerniSvet();
             procesor = new PrikazovyProcesor();
 
             procesor.Zaregistruj(new ProzkoumejPrikaz());
             procesor.Zaregistruj(new JdiPrikaz());
+            procesor.Zaregistruj(new VezmiPrikaz());
+            procesor.Zaregistruj(new InventarPrikaz());
+            procesor.Zaregistruj(new PolozPrikaz());
+            procesor.Zaregistruj(new UtokPrikaz());
+            procesor.Zaregistruj(new MluvPrikaz());
             procesor.Zaregistruj(new PomocPrikaz(procesor.VsechnyPrikazy));
 
             myServer = new TcpListener(IPAddress.Any, port);
@@ -34,153 +39,117 @@ namespace MoznyZaklad.Server
         {
             myServer.Start();
             isRunning = true;
-            Logger.Info($"MUD server byl spusten a nasloucha...");
             _ = ServerLoop();
         }
 
+        
         public void Stop()
         {
             isRunning = false;
             myServer.Stop();
-            Logger.Info("MUD server byl ukoncen.");
         }
 
         private async Task ServerLoop()
         {
             while (isRunning)
             {
-                try
-                {
-                    TcpClient client = await myServer.AcceptTcpClientAsync();
-                    _ = Task.Run(() => ClientLoop(client));
-                }
-                catch (ObjectDisposedException) { break; }
-                catch (Exception ex)
-                {
-                    Logger.Chyba($"Chyba serveru: {ex.Message}");
-                }
+                TcpClient client = await myServer.AcceptTcpClientAsync();
+                _ = Task.Run(() => ClientLoop(client));
             }
         }
 
         private async Task ClientLoop(TcpClient client)
         {
-            Logger.Info("Nové spojení navázáno (čekám na login).");
             Hrac? hrac = null;
-            string aktivniHesloHash = ""; // Sem si dočasně uložíme hash pro uložení při odpojení
+            string aktivniHesloHash = "";
 
             try
             {
                 using (client)
-                using (NetworkStream stream = client.GetStream())
-                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                using (var stream = client.GetStream())
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 {
-                    await writer.WriteLineAsync("Vitej v ukazkovem MUDu.");
-                    await writer.WriteLineAsync("Zadej sve jmeno:");
+                    await writer.WriteLineAsync("Zadej jmeno:");
+                    string jmeno = (await reader.ReadLineAsync()) ?? "";
 
-                    string? jmeno = await reader.ReadLineAsync();
-
-                    if (string.IsNullOrWhiteSpace(jmeno))
-                    {
-                        await writer.WriteLineAsync("Neplatne jmeno. Spojeni bude ukonceno.");
-                        return;
-                    }
-
-                    jmeno = jmeno.Trim();
-
-                    // --- START LOGIN SYSTÉMU ---
-                    DataHraci? ucet = SpravceUctu.NactiUcet(jmeno);
+                    var ucet = SpravceUctu.NactiUcet(jmeno);
 
                     if (ucet != null)
                     {
-                        await writer.WriteLineAsync("Ucet nalezen. Zadej sve heslo:");
-                        string? heslo = await reader.ReadLineAsync();
+                        await writer.WriteLineAsync("Zadej heslo:");
+                        string heslo = (await reader.ReadLineAsync()) ?? "";
 
-                        if (heslo == null || SpravceUctu.VytvorHashHesla(heslo) != ucet.HesloHash)
+                        if (SpravceUctu.VytvorHashHesla(heslo) != ucet.HesloHash)
                         {
-                            await writer.WriteLineAsync("Spatne heslo! Budes odpojen.");
+                            await writer.WriteLineAsync("Spatne heslo");
                             return;
                         }
+
                         aktivniHesloHash = ucet.HesloHash;
-                        await writer.WriteLineAsync("Prihlaseni uspesne!");
+                        hrac = SpravceUctu.VytvorHraceZeSave(ucet, herniSvet);
                     }
                     else
                     {
-                        await writer.WriteLineAsync("Jmeno neznam, vytvarim novy ucet. Zadej nove heslo:");
-                        string? heslo = await reader.ReadLineAsync();
-                        if (string.IsNullOrWhiteSpace(heslo)) return;
+                        await writer.WriteLineAsync("Novy ucet - heslo:");
+                        string heslo = (await reader.ReadLineAsync()) ?? "";
 
                         aktivniHesloHash = SpravceUctu.VytvorHashHesla(heslo);
-                        await writer.WriteLineAsync("Ucet vytvoren a chranen heslem!");
-                    }
-                    // --- KONEC LOGIN SYSTÉMU ---
 
-                    // --- ZJIŠTĚNÍ POZICE HRÁČE ---
-                    Mistnost startMistnost = herniSvet.StartovniMistnost!;
-
-                    // Pokud má účet uloženou místnost a my ji máme v mapě načtenou z JSONu:
-                    if (ucet != null && herniSvet.Mistnosti.ContainsKey(ucet.MistnostId))
-                    {
-                        startMistnost = herniSvet.Mistnosti[ucet.MistnostId];
+                        hrac = new Hrac(herniSvet.StartovniMistnost!)
+                        {
+                            Jmeno = jmeno
+                        };
                     }
 
-                    hrac = new Hrac(startMistnost);
-                    hrac.Jmeno = jmeno;
+                    hrac.Svet = herniSvet;
 
                     lock (hrac.AktualniMistnost.Hraci)
-                    {
                         hrac.AktualniMistnost.Hraci.Add(hrac);
-                    }
 
-                    Logger.Info($"Prihlasil se hrac: {hrac.Jmeno}");
-
-                    await writer.WriteLineAsync($"\nAhoj, {hrac.Jmeno}!");
+                    await writer.WriteLineAsync($"Ahoj {hrac.Jmeno}");
                     await writer.WriteLineAsync(hrac.AktualniMistnost.VratPopisMistnosti(hrac));
 
-                    bool clientConnected = true;
+                    bool connected = true;
 
-                    while (clientConnected)
+                    while (connected)
                     {
                         await writer.WriteAsync("\n> ");
-                        string? data = await reader.ReadLineAsync();
+                        string? input = await reader.ReadLineAsync();
 
-                        if (data == null) { clientConnected = false; continue; }
+                        if (input == null) break;
 
-                        data = data.Trim();
-                        if (string.IsNullOrWhiteSpace(data)) continue;
+                        if (input.ToLower() == "konec")
+                            break;
 
-                        if (data.ToLower() == "konec")
-                        {
-                            await writer.WriteLineAsync("Spojeni bylo ukonceno. Pozice ulozena.");
-                            clientConnected = false;
-                            continue;
-                        }
+                        string odpoved = procesor.Zpracuj(hrac, input);
 
-                        string odpoved = procesor.Zpracuj(hrac, data);
                         if (!string.IsNullOrWhiteSpace(odpoved))
-                        {
                             await writer.WriteLineAsync(odpoved);
+
+                        
+                        if (hrac.Vyhral)
+                        {
+                            await writer.WriteLineAsync("");
+                            await writer.WriteLineAsync("GRATULUJI!");
+                            await writer.WriteLineAsync("Dokončil jsi hru a odletěl do bezpečí");
+                            await writer.WriteLineAsync("");
+                            await writer.WriteLineAsync("Stiskni ENTER pro odpojení...");
+
+                            await reader.ReadLineAsync();
+                            break;
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Logger.Chyba($"Chyba klienta: {ex.Message}");
             }
             finally
             {
                 if (hrac != null)
                 {
                     lock (hrac.AktualniMistnost.Hraci)
-                    {
                         hrac.AktualniMistnost.Hraci.Remove(hrac);
-                    }
 
-                    // --- ZDE PROBÍHÁ ULOŽENÍ STAVU PŘI ODPOJENÍ ---
-                    SpravceUctu.UlozUcet(hrac.Jmeno, aktivniHesloHash, hrac.AktualniMistnost.Id);
-
-                    Logger.Info($"Hrac {hrac.Jmeno} se odpojil. Jeho pozice byla ulozena.");
+                    SpravceUctu.UlozUcet(hrac, aktivniHesloHash);
                 }
             }
         }

@@ -10,10 +10,9 @@ namespace MoznyZaklad
     {
         static void Main(string[] args)
         {
-            int port = 5555; // Výchozí port, pokud by JSON chyběl
+            int port = 5555; 
             string configFile = "config.json";
 
-            // Pokus o načtení portu z konfiguračního souboru
             if (File.Exists(configFile))
             {
                 try
@@ -36,16 +35,12 @@ namespace MoznyZaklad
                 Console.WriteLine("[VAROVÁNÍ] Soubor config.json nenalezen, použije se výchozí port 5555.");
             }
 
-            // Spuštění samotného serveru s portem
             MusServer server = new MusServer(port);
             server.Start();
 
-            // DŮLEŽITÉ: Protože tvůj server běží na pozadí (Task), 
-            // musíme hlavní program zastavit, jinak by se konzole hned zavřela.
             Console.WriteLine("Pro vypnutí serveru stiskni ENTER...");
             Console.ReadLine();
 
-            // Po stisknutí Enteru se server korektně ukončí
             server.Stop();
         }
     }

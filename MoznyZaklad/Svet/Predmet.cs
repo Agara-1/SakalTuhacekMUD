@@ -1,21 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MoznyZaklad.Svet
 {
     public class Predmet
     {
-        public string Nazev { get; }
-        public string Popis { get; }
+        public string Id { get; set; } = "";
+        public string Nazev { get; set; } = "";
+        public string Popis { get; set; } = "";
 
-        public Predmet(string nazev, string popis)
-        {
-            Nazev = nazev;
-            Popis = popis;
-        }
+        public string Typ { get; set; } = ""; 
+        public int Hodnota { get; set; } = 0;
 
         public override string ToString()
         {
