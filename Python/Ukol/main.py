@@ -527,7 +527,7 @@ for n in [10000, 1000000]:
 # ukol 45 nepravda - kazda kolekce umi neco co list ne
 
 print({"chleba": 35}["chleba"])     # dict - hledani podle klice
-print(set([1, 1, 2]))               # set - bez duplicit, rychly in
+print(set([1, 1, 2]))               # set - bez duplicit, rychly in  k
 print({(1, 2): "bod"})              # tuple - muze byt klic
 
 
